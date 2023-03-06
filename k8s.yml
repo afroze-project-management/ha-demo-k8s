@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: ha-demo
+  name: ha-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ha-demo
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: ha-demo
+    spec:
+      containers:
+      - image: afroze9/ha-demo:latest
+        name: ha-demo
+        resources:
+          limits:
+            cpu: 50m
+            memory: "128Mi"
+          requests:
+            cpu: 25m
+            memory: "64Mi"
+status: {}
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ha-demo-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: ha-demo
+  minReplicas: 4
+  maxReplicas: 10
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 5
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 5
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: ha-demo
+  name: ha-demo
+spec:
+  ports:
+  - name: 5000-80
+    port: 5000
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: ha-demo
+  type: LoadBalancer
+---
